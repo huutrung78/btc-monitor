@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Register — Panel Designer</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center}
+.card{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:32px;width:100%;max-width:380px}
+.logo{display:flex;align-items:center;gap:10px;margin-bottom:28px;justify-content:center}
+.logo-icon{width:36px;height:36px;background:linear-gradient(135deg,#238636,#1a7f37);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.logo-text{font-size:18px;font-weight:700;color:#e6edf3}
+h2{font-size:20px;font-weight:600;margin-bottom:6px;text-align:center;color:#e6edf3}
+.sub{font-size:12px;color:#8b949e;text-align:center;margin-bottom:20px}
+.field{margin-bottom:14px}
+label{display:block;font-size:13px;color:#8b949e;margin-bottom:6px}
+input{width:100%;padding:10px 12px;background:#0d1117;border:1px solid #30363d;border-radius:8px;color:#e6edf3;font-size:14px;outline:none;transition:border-color .2s}
+input:focus{border-color:#388bfd}
+.btn{width:100%;padding:11px;background:#238636;border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:background .2s;margin-top:8px}
+.btn:hover{background:#2ea043}
+.btn:disabled{background:#21262d;color:#6e7681;cursor:not-allowed}
+.link-row{text-align:center;margin-top:16px;font-size:13px;color:#8b949e}
+.link-row a{color:#388bfd;text-decoration:none}
+.link-row a:hover{text-decoration:underline}
+.error{background:#3d1f1f;border:1px solid #f85149;border-radius:8px;padding:10px 12px;font-size:13px;color:#f85149;margin-bottom:16px;display:none}
+.success{background:#1a3a1f;border:1px solid #238636;border-radius:8px;padding:10px 12px;font-size:13px;color:#3fb950;margin-bottom:16px;display:none}
+.bonus{background:#0d2137;border:1px solid #388bfd33;border-radius:8px;padding:10px 12px;font-size:12px;color:#8b949e;text-align:center;margin-bottom:18px}
+.bonus b{color:#f0883e}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <div class="logo-icon">⚡</div>
+    <div class="logo-text">PanelDesigner</div>
+  </div>
+  <h2>Create account</h2>
+  <p class="sub">Electrical panel design powered by AI</p>
+  <div class="bonus">🎁 New account bonus: <b>1,000,000 tokens</b> free<br><span style="font-size:11px">Each analysis costs 1,000 + 250 per device</span></div>
+  <div class="error" id="err"></div>
+  <div class="success" id="ok-msg"></div>
+  <div class="field">
+    <label>Email <span style="color:#f85149">*</span></label>
+    <input type="email" id="email" placeholder="your@email.com" autocomplete="email">
+  </div>
+  <div class="field">
+    <label>Phone number</label>
+    <input type="tel" id="phone" placeholder="0901234567">
+  </div>
+  <div class="field">
+    <label>Password <span style="color:#f85149">*</span></label>
+    <input type="password" id="password" placeholder="Min 6 characters" autocomplete="new-password">
+  </div>
+  <div class="field">
+    <label>Confirm password <span style="color:#f85149">*</span></label>
+    <input type="password" id="password2" placeholder="Re-enter password">
+  </div>
+  <button class="btn" id="btn" onclick="doRegister()">Create account</button>
+  <div class="link-row">Already have an account? <a href="/login">Sign in</a></div>
+</div>
+<script>
+document.addEventListener('keydown', e => { if(e.key==='Enter') doRegister(); });
+async function doRegister() {
+  const btn = document.getElementById('btn');
+  const err = document.getElementById('err');
+  const okMsg = document.getElementById('ok-msg');
+  const email = document.getElementById('email').value.trim();
+  const phone = document.getElementById('phone').value.trim();
+  const password = document.getElementById('password').value;
+  const password2 = document.getElementById('password2').value;
+  err.style.display = 'none'; okMsg.style.display = 'none';
+  if (!email) { showErr('Email is required'); return; }
+  if (!password) { showErr('Password is required'); return; }
+  if (password.length < 6) { showErr('Password must be at least 6 characters'); return; }
+  if (password !== password2) { showErr('Passwords do not match'); return; }
+  btn.disabled = true; btn.textContent = 'Creating account...';
+  try {
+    const r = await fetch('/api/auth/register', {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({email, phone, password})
+    });
+    const d = await r.json();
+    if (d.ok) {
+      okMsg.textContent = d.message + ' Redirecting...';
+      okMsg.style.display = 'block';
+      setTimeout(() => { window.location.href = '/login'; }, 2000);
+    } else {
+      showErr(d.error || 'Registration failed');
+      btn.disabled = false; btn.textContent = 'Create account';
+    }
+  } catch(e) { showErr('Connection error'); btn.disabled=false; btn.textContent='Create account'; }
+}
+function showErr(msg) {
+  const el = document.getElementById('err');
+  el.textContent = msg; el.style.display = 'block';
+}
+</script>
+</body>
+</html>

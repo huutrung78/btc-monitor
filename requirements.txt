@@ -1,0 +1,9 @@
+flask
+flask-cors
+anthropic
+openpyxl
+ezdxf
+matplotlib
+bcrypt
+python-dotenv
+gunicorn

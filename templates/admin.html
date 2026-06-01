@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin — Panel Designer</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0d1117;color:#e6edf3;font-family:'Segoe UI',sans-serif;font-size:14px}
+.topbar{background:#161b22;border-bottom:1px solid #30363d;padding:12px 24px;display:flex;align-items:center;gap:16px}
+.logo{font-size:16px;font-weight:700;color:#e6edf3}
+.badge-admin{background:#b08800;color:#fff;font-size:10px;padding:2px 8px;border-radius:4px;font-weight:700}
+.topbar-right{margin-left:auto;display:flex;gap:10px;align-items:center}
+.btn{padding:7px 14px;border:none;border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;transition:.15s}
+.btn-ghost{background:transparent;color:#8b949e;border:1px solid #30363d}
+.btn-ghost:hover{color:#e6edf3;border-color:#6e7681}
+.btn-green{background:#238636;color:#fff}
+.btn-green:hover{background:#2ea043}
+.btn-red{background:#da3633;color:#fff}
+.btn-red:hover{background:#f85149}
+.btn-blue{background:#1f6feb;color:#fff}
+.btn-blue:hover{background:#388bfd}
+.btn-sm{padding:4px 10px;font-size:12px}
+.container{max-width:1100px;margin:0 auto;padding:24px}
+h1{font-size:20px;font-weight:700;margin-bottom:6px}
+.sub{color:#8b949e;font-size:13px;margin-bottom:24px}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px}
+.stat-card{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:16px}
+.stat-val{font-size:24px;font-weight:700;color:#e6edf3;margin-bottom:4px}
+.stat-lbl{font-size:12px;color:#8b949e}
+.card{background:#161b22;border:1px solid #30363d;border-radius:10px;overflow:hidden;margin-bottom:20px}
+.card-hdr{padding:14px 18px;border-bottom:1px solid #30363d;font-weight:600;display:flex;align-items:center;gap:10px}
+.search-input{padding:7px 12px;background:#0d1117;border:1px solid #30363d;border-radius:7px;color:#e6edf3;font-size:13px;outline:none;width:240px}
+.search-input:focus{border-color:#388bfd}
+table{width:100%;border-collapse:collapse}
+th{padding:10px 16px;text-align:left;font-size:12px;color:#8b949e;border-bottom:1px solid #30363d;background:#161b22;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+td{padding:12px 16px;border-bottom:1px solid #21262d;font-size:13px;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#1c2128}
+.pill{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600}
+.pill-green{background:#1a3a1f;color:#3fb950}
+.pill-red{background:#3d1f1f;color:#f85149}
+.pill-admin{background:#2d2000;color:#f0883e}
+.token-input{width:100px;padding:5px 8px;background:#0d1117;border:1px solid #30363d;border-radius:6px;color:#e6edf3;font-size:13px;text-align:center;outline:none}
+.token-input:focus{border-color:#238636}
+.toast{position:fixed;bottom:20px;right:20px;background:#1a3a1f;border:1px solid #238636;border-radius:8px;padding:12px 18px;color:#3fb950;font-size:13px;font-weight:600;opacity:0;transition:.3s;pointer-events:none}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="logo">⚡ PanelDesigner</div>
+  <span class="badge-admin">ADMIN</span>
+  <div class="topbar-right">
+    <a href="/" class="btn btn-ghost btn-sm">← Back to app</a>
+    <button class="btn btn-ghost btn-sm" onclick="logout()">Logout</button>
+  </div>
+</div>
+
+<div class="container">
+  <h1>Admin Dashboard</h1>
+  <p class="sub">Manage users and token balances</p>
+
+  <div class="stats-row" id="stats-row">
+    <div class="stat-card"><div class="stat-val" id="st-total">—</div><div class="stat-lbl">Total users</div></div>
+    <div class="stat-card"><div class="stat-val" id="st-active">—</div><div class="stat-lbl">Active users</div></div>
+    <div class="stat-card"><div class="stat-val" id="st-tokens">—</div><div class="stat-lbl">Total tokens issued</div></div>
+    <div class="stat-card"><div class="stat-val" id="st-today">—</div><div class="stat-lbl">Registered today</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr">
+      Users
+      <input class="search-input" id="search" placeholder="Search email / phone..." oninput="filterUsers()">
+      <button class="btn btn-green btn-sm" style="margin-left:auto" onclick="loadUsers()">↺ Refresh</button>
+    </div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr>
+          <th>#</th><th>Email</th><th>Phone</th><th>Tokens</th>
+          <th>Add tokens</th><th>Status</th><th>Registered</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="user-tbody"><tr><td colspan="8" style="text-align:center;color:#6e7681;padding:24px">Loading...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let allUsers = [];
+
+async function loadUsers() {
+  const r = await fetch('/api/admin/users');
+  const d = await r.json();
+  if (!d.ok) return;
+  allUsers = d.users;
+  renderStats(allUsers);
+  renderTable(allUsers);
+}
+
+function renderStats(users) {
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById('st-total').textContent = users.length;
+  document.getElementById('st-active').textContent = users.filter(u=>u.is_active).length;
+  document.getElementById('st-tokens').textContent = users.reduce((s,u)=>s+u.tokens,0).toLocaleString();
+  document.getElementById('st-today').textContent = users.filter(u=>u.created_at&&u.created_at.startsWith(today)).length;
+}
+
+function filterUsers() {
+  const q = document.getElementById('search').value.toLowerCase();
+  renderTable(allUsers.filter(u =>
+    (u.email||'').toLowerCase().includes(q) || (u.phone||'').includes(q)
+  ));
+}
+
+function renderTable(users) {
+  const tbody = document.getElementById('user-tbody');
+  if (!users.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#6e7681;padding:24px">No users found</td></tr>';
+    return;
+  }
+  tbody.innerHTML = users.map((u,i) => `
+    <tr>
+      <td style="color:#6e7681">${i+1}</td>
+      <td><b>${u.email}</b>${u.is_admin?'  <span class="pill pill-admin">ADMIN</span>':''}</td>
+      <td style="color:#8b949e">${u.phone||'—'}</td>
+      <td><b style="color:${u.tokens<10000?'#f85149':u.tokens<100000?'#f0883e':'#3fb950'}">${u.tokens.toLocaleString()}</b></td>
+      <td>
+        <div style="display:flex;gap:6px;align-items:center">
+          <input class="token-input" id="tk-${u.id}" type="number" value="100000" min="1">
+          <button class="btn btn-green btn-sm" onclick="addTokens(${u.id})">+ Add</button>
+        </div>
+      </td>
+      <td><span class="pill ${u.is_active?'pill-green':'pill-red'}">${u.is_active?'Active':'Disabled'}</span></td>
+      <td style="color:#6e7681;font-size:12px">${(u.created_at||'').slice(0,10)}</td>
+      <td>
+        ${!u.is_admin ? `<button class="btn btn-sm ${u.is_active?'btn-red':'btn-ghost'}" onclick="toggleUser(${u.id})">${u.is_active?'Disable':'Enable'}</button>` : '<span style="color:#6e7681;font-size:11px">—</span>'}
+      </td>
+    </tr>`).join('');
+}
+
+async function addTokens(userId) {
+  const amount = parseInt(document.getElementById('tk-'+userId).value);
+  if (!amount || amount <= 0) { showToast('Invalid amount', true); return; }
+  const r = await fetch('/api/admin/add-tokens', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({user_id: userId, amount})
+  });
+  const d = await r.json();
+  if (d.ok) {
+    showToast(`Added ${amount.toLocaleString()} tokens. New balance: ${d.tokens_new.toLocaleString()}`);
+    loadUsers();
+  } else showToast(d.error, true);
+}
+
+async function toggleUser(userId) {
+  const r = await fetch('/api/admin/toggle-user', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({user_id: userId})
+  });
+  if ((await r.json()).ok) { showToast('User status updated'); loadUsers(); }
+}
+
+async function logout() {
+  await fetch('/api/auth/logout', {method:'POST'});
+  window.location.href = '/login';
+}
+
+function showToast(msg, isErr=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = isErr ? '#3d1f1f' : '#1a3a1f';
+  t.style.borderColor = isErr ? '#f85149' : '#238636';
+  t.style.color = isErr ? '#f85149' : '#3fb950';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+loadUsers();
+</script>
+</body>
+</html>
